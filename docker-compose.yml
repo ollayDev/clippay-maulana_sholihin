@@ -1,0 +1,30 @@
+# ClipPay take-home — Postgres siap pakai.
+#   docker compose up -d
+#   psql "postgresql://clippay:clippay@localhost:5444/clippay" -f schema.sql
+#
+# Port 5444 (bukan 5432/5433) biar gak bentrok sama Postgres lain di mesin kamu.
+# Override kalau perlu: CLIPPAY_DB_PORT=5555 docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clippay-db
+    environment:
+      POSTGRES_USER: clippay
+      POSTGRES_PASSWORD: clippay
+      POSTGRES_DB: clippay
+    ports:
+      # HOST:CONTAINER. Kanan tetap 5432 (Postgres listen di situ di dalam
+      # container). Kiri 5444 supaya tidak bentrok dengan Postgres lain.
+      # Bind ke 127.0.0.1 mengikuti konvensi livechat-db-dev: di VPS publik,
+      # "5444:5432" membuka Postgres ke internet dan ufw tidak bisa menutupnya.
+      - "127.0.0.1:${CLIPPAY_DB_PORT:-5444}:5432"
+    volumes:
+      - clippay-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clippay -d clippay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  clippay-data:
